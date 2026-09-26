@@ -77,8 +77,9 @@ detect_router_oui() {
 	local CANDIDATE
 	local SAVED_OUI
 
-	# ASUS 固件通常把原始 LAN/基础 MAC 保存在这两个只读 NVRAM 项中。
-	# 优先读取它们，避免 br0 已被旧配置修改时误把伪装地址当作原始 OUI。
+	# lan_hwaddr 由固件在 start_lan 时按 br0 实际地址写入，插件在其后才修改 br0，
+	# 所以这里读到的仍是原始地址；et0macaddr 是出厂基础 MAC。优先读取它们，
+	# 避免 br0 已被旧配置修改时误把伪装地址当作原始 OUI。
 	for CANDIDATE in "$(nvram get lan_hwaddr 2>/dev/null)" "$(nvram get et0macaddr 2>/dev/null)"; do
 		CANDIDATE="$(normalize_mac "$CANDIDATE")"
 		if is_valid_unicast_mac "$CANDIDATE"; then
@@ -110,7 +111,7 @@ detect_router_oui() {
 install_now() {
 	local TITLE="LAN MAC 伪装"
 	local DESCR="保留路由器 OUI，随机或自定义 LAN MAC，并显示网桥当前与重启后状态"
-	local PLVER="1.6"
+	local PLVER="1.6.1"
 	local ROUTER_OUI
 
 	# 仅移除本插件自己的启动项，避免影响其它插件或系统服务。

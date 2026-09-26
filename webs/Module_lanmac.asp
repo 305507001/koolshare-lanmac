@@ -213,7 +213,7 @@ function renderState() {
     var enabled = lanmacDbus["lanmac_enable"] === "1";
     var savedMac = normalizeMac(lanmacDbus["lanmac_mac"]);
     var status = lanmacDbus["lanmac_last_status"] || (enabled ? "配置已启用，等待路由器重启后生效" : "插件未启用");
-    var version = lanmacDbus["lanmac_version"] || "1.6";
+    var version = lanmacDbus["lanmac_version"] || "1.6.1";
     var oui = normalizeOui(lanmacDbus["lanmac_oui"]);
     var ouiAvailable = isValidOui(oui);
     var currentBr0 = normalizeMac(lanmacDbus["lanmac_current_br0"]);
@@ -233,6 +233,9 @@ function renderState() {
         $("#lanmac_mac").val(normalizeMac(lanmacDbus["lanmac_mac"]));
     }
     $("#lanmac_saved").text(savedMac || "未设置");
+    if (enabled && !validateMac(currentBr0) && !validateMac(appliedMac) && currentBr0 !== appliedMac) {
+        status += "（注意：br0 当前地址与上次应用的不一致，LAN 可能已被固件重建，重启后会重新应用）";
+    }
     $("#lanmac_status").text(status);
     $("#lanmac_version").text(version);
     $("#lanmac_oui").text(ouiAvailable ? oui : "未识别（随机功能不可用）");
@@ -500,7 +503,7 @@ function save() {
                                         <tr>
                                             <th>插件状态</th>
                                             <td class="lanmac-status">
-                                                <div>版本：<span id="lanmac_version">1.6</span></div>
+                                                <div>版本：<span id="lanmac_version">1.6.1</span></div>
                                                 <div>路由器 OUI：<span id="lanmac_oui">读取中...</span></div>
                                                 <div>已保存：<span id="lanmac_saved">读取中...</span></div>
                                                 <div>下次重启目标：<span id="lanmac_next_boot">读取中...</span></div>
@@ -519,7 +522,8 @@ function save() {
                                             <li>“随机后三组”只填充输入框，不会自动保存或立即应用；前三组使用安装时识别到的路由器 OUI。</li>
                                             <li>网桥信息来自 Linux 的 /sys/class/net，只读取当前地址；刷新操作不会启停或修改任何网桥。</li>
                                             <li>启用后仅在下次路由器启动时修改 LAN 网桥 br0，不改 WAN、无线接口或其它插件配置。</li>
-                                            <li>启动应用时 LAN 会短暂重连；若网桥不存在或 MAC 无效，插件会停止操作并记录状态。</li>
+                                            <li>开机流程完成后在线修改 br0 地址，不会关闭或重启网桥；随后广播免费 ARP，让客户端改用新地址。若网桥不存在或 MAC 无效，插件会停止操作并记录状态。</li>
+                                            <li>修改 LAN IP 等会触发固件重建 LAN 的操作后，br0 会恢复固件默认地址，需重启路由器才会再次应用。</li>
                                             <li>请确保所填地址未被局域网内其它设备使用，以免发生 MAC 冲突。</li>
                                         </ul>
                                     </div>
